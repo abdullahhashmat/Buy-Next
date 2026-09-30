@@ -1,7 +1,11 @@
 import Link from "next/link";
 
 export default async function Home() {
-  const res = await fetch("/api/products", {
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
+
+  const res = await fetch(`${baseUrl}/api/products`, {
     cache: "no-store",
   });
 
