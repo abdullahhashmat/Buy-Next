@@ -1,37 +1,42 @@
 import Link from "next/link";
+import { connectDB } from "@/lib/mongodb";
+import Product from "@/lib/models/Product";
 
-type Product = {
+type ProductType = {
   _id: string;
   name: string;
   price: number;
-  salePrice?: number;
-  isSale?: boolean;
+  salePrice: number | null;
+  isSale: boolean;
   image: string;
   category: string;
 };
 
 export default async function Home() {
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
-
-  let products: Product[] = [];
+  let products: ProductType[] = [];
 
   try {
-    const res = await fetch(`${baseUrl}/api/products`, {
-      cache: "no-store",
-    });
+    await connectDB();
 
-    if (res.ok) {
-      const contentType = res.headers.get("content-type") || "";
+    const dbProducts = await Product.find({})
+      .sort({ createdAt: -1 })
+      .lean();
 
-      if (contentType.includes("application/json")) {
-        const data = await res.json();
-        products = Array.isArray(data.products) ? data.products : [];
-      }
-    }
+    products = dbProducts.map((product: any) => ({
+      _id: product._id.toString(),
+      name: product.name,
+      price: Number(product.price),
+      salePrice:
+        product.salePrice !== null &&
+        product.salePrice !== undefined
+          ? Number(product.salePrice)
+          : null,
+      isSale: Boolean(product.isSale),
+      image: product.image,
+      category: product.category,
+    }));
   } catch (error) {
-    console.error("Products fetch error:", error);
+    console.error("HOME PRODUCTS ERROR:", error);
     products = [];
   }
 
@@ -43,308 +48,324 @@ export default async function Home() {
     .filter((product) => product.category === "Women")
     .slice(0, 4);
 
-  const getSaleStatus = (product: Product) => {
-    const onSale =
-      product.isSale === true &&
-      typeof product.salePrice === "number" &&
-      product.salePrice < product.price;
-
-    const discountPercent = onSale
-      ? Math.round(
-          ((product.price - product.salePrice!) / product.price) * 100
-        )
-      : 0;
-
-    return { onSale, discountPercent };
-  };
+  const featuredProducts = products.slice(0, 4);
 
   return (
     <main className="min-h-screen bg-[#050505] text-white">
-      {/* ================= HERO ================= */}
-      <section className="relative overflow-hidden border-b border-[#252525]">
-        <img
-          src="/images/1.jpg"
-          alt="BUY NEXT Ready To Wear"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
 
-        <div className="relative z-10 flex min-h-[520px] items-center bg-black/30 px-8 py-24 md:px-16 lg:px-24">
-          <div className="max-w-lg text-left">
-            <h1 className="text-4xl font-normal uppercase leading-tight text-white md:text-5xl lg:text-6xl">
-              Ready To Wear
+      {/* HERO */}
+      <section className="relative overflow-hidden border-b border-[#C6A15B]/20">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,#C6A15B18,transparent_40%)]" />
+
+        <div className="relative mx-auto flex min-h-[600px] max-w-7xl items-center px-6 py-20 lg:px-8">
+          <div className="max-w-3xl">
+            <p className="mb-5 text-sm font-medium uppercase tracking-[0.35em] text-[#C6A15B]">
+              Premium Fashion
+            </p>
+
+            <h1 className="text-5xl font-bold leading-tight tracking-tight sm:text-6xl lg:text-7xl">
+              Style That
+              <span className="block text-[#C6A15B]">
+                Speaks For You.
+              </span>
             </h1>
 
-            <Link
-              href="/shop"
-              className="mt-6 inline-block border border-white px-7 py-3 text-xs font-medium uppercase tracking-[2px] text-white transition hover:bg-white hover:text-black"
-            >
-              Shop Now
-            </Link>
+            <p className="mt-6 max-w-2xl text-base leading-7 text-gray-400 sm:text-lg">
+              Discover premium fashion designed for modern lifestyles.
+              Shop our latest collection and upgrade your everyday style.
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link
+                href="/products"
+                className="rounded-md bg-[#C6A15B] px-7 py-3.5 text-sm font-semibold text-black transition hover:bg-[#d4b46d]"
+              >
+                Shop Now
+              </Link>
+
+              <Link
+                href="/products?category=Sale"
+                className="rounded-md border border-[#C6A15B]/50 px-7 py-3.5 text-sm font-semibold text-[#C6A15B] transition hover:bg-[#C6A15B]/10"
+              >
+                View Sale
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ================= MEN ================= */}
-      {menProducts.length > 0 && (
-        <section className="px-5 py-14 md:px-10 lg:px-16">
-          <div className="mx-auto max-w-[1400px]">
-            <div className="mb-7 flex items-end justify-between border-b border-[#222] pb-5">
-              <div>
-                <p className="mb-2 text-[9px] uppercase tracking-[4px] text-[#C6A15B]">
-                  Collection 01
-                </p>
+      {/* FEATURED */}
+      <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+        <div className="mb-10 flex items-end justify-between gap-5">
+          <div>
+            <p className="mb-2 text-sm uppercase tracking-[0.25em] text-[#C6A15B]">
+              Latest Collection
+            </p>
 
-                <h2 className="text-2xl font-light uppercase tracking-wide md:text-4xl">
-                  Men
-                </h2>
-              </div>
+            <h2 className="text-3xl font-bold sm:text-4xl">
+              Featured Products
+            </h2>
+          </div>
 
-              <Link
-                href="/men"
-                className="text-[9px] uppercase tracking-[2px] text-white/50 transition hover:text-[#C6A15B]"
-              >
-                View All →
-              </Link>
-            </div>
+          <Link
+            href="/products"
+            className="hidden text-sm font-medium text-[#C6A15B] hover:underline sm:block"
+          >
+            View All →
+          </Link>
+        </div>
 
-            <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
-              {menProducts.map((product) => {
-                const { onSale } = getSaleStatus(product);
+        {featuredProducts.length === 0 ? (
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-10 text-center">
+            <p className="text-gray-400">
+              Products will appear here soon.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {featuredProducts.map((product) => {
+              const discount =
+                product.isSale &&
+                product.salePrice &&
+                product.price > product.salePrice
+                  ? Math.round(
+                      ((product.price - product.salePrice) /
+                        product.price) *
+                        100
+                    )
+                  : 0;
 
-                return (
-                  <Link
-                    href={`/product/${product._id}`}
-                    key={product._id}
-                    className="group"
-                  >
-                    <div className="relative aspect-[3/4] overflow-hidden bg-[#111]">
+              return (
+                <Link
+                  key={product._id}
+                  href={`/products/${product._id}`}
+                  className="group overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] transition hover:-translate-y-1 hover:border-[#C6A15B]/40"
+                >
+                  <div className="relative aspect-[4/5] overflow-hidden bg-[#111]">
+                    {product.image ? (
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.04]"
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-gray-600">
+                        No Image
+                      </div>
+                    )}
 
-                      {onSale && (
-                        <span className="absolute left-3 top-3 bg-[#C6A15B] px-2.5 py-1.5 text-[8px] font-bold tracking-[1px] text-black">
-                          SALE
+                    {product.isSale && discount > 0 && (
+                      <span className="absolute left-3 top-3 rounded-full bg-[#C6A15B] px-3 py-1 text-xs font-bold text-black">
+                        {discount}% OFF
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="p-5">
+                    <p className="mb-1 text-xs uppercase tracking-wider text-gray-500">
+                      {product.category}
+                    </p>
+
+                    <h3 className="truncate text-base font-semibold">
+                      {product.name}
+                    </h3>
+
+                    <div className="mt-3 flex items-center gap-2">
+                      {product.isSale &&
+                      product.salePrice &&
+                      product.salePrice < product.price ? (
+                        <>
+                          <span className="font-bold text-[#C6A15B]">
+                            Rs.{" "}
+                            {product.salePrice.toLocaleString()}
+                          </span>
+
+                          <span className="text-sm text-gray-500 line-through">
+                            Rs. {product.price.toLocaleString()}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-bold text-[#C6A15B]">
+                          Rs. {product.price.toLocaleString()}
                         </span>
                       )}
                     </div>
-
-                    <div className="pt-4">
-                      <h3 className="text-xs font-medium uppercase tracking-[1px] text-white/90 md:text-sm">
-                        {product.name}
-                      </h3>
-
-                      {onSale ? (
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="text-xs font-medium text-[#C6A15B]">
-                            Rs. {product.salePrice!.toLocaleString()}
-                          </span>
-
-                          <span className="text-[10px] text-white/35 line-through">
-                            Rs. {product.price.toLocaleString()}
-                          </span>
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-xs text-white/60">
-                          Rs. {product.price.toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
-      {/* ================= WOMEN ================= */}
-      {womenProducts.length > 0 && (
-        <section className="border-y border-[#222] bg-[#090909] px-5 py-14 md:px-10 lg:px-16">
-          <div className="mx-auto max-w-[1400px]">
-            <div className="mb-7 flex items-end justify-between border-b border-[#222] pb-5">
-              <div>
-                <p className="mb-2 text-[9px] uppercase tracking-[4px] text-[#C6A15B]">
-                  Collection 02
-                </p>
-
-                <h2 className="text-2xl font-light uppercase tracking-wide md:text-4xl">
-                  Women
-                </h2>
-              </div>
-
-              <Link
-                href="/women"
-                className="text-[9px] uppercase tracking-[2px] text-white/50 transition hover:text-[#C6A15B]"
-              >
-                View All →
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
-              {womenProducts.map((product) => {
-                const { onSale } = getSaleStatus(product);
-
-                return (
-                  <Link
-                    href={`/product/${product._id}`}
-                    key={product._id}
-                    className="group"
-                  >
-                    <div className="relative aspect-[3/4] overflow-hidden bg-[#111]">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.04]"
-                      />
-
-                      {onSale && (
-                        <span className="absolute left-3 top-3 bg-[#C6A15B] px-2.5 py-1.5 text-[8px] font-bold tracking-[1px] text-black">
-                          SALE
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="pt-4">
-                      <h3 className="text-xs font-medium uppercase tracking-[1px] text-white/90 md:text-sm">
-                        {product.name}
-                      </h3>
-
-                      {onSale ? (
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="text-xs font-medium text-[#C6A15B]">
-                            Rs. {product.salePrice!.toLocaleString()}
-                          </span>
-
-                          <span className="text-[10px] text-white/35 line-through">
-                            Rs. {product.price.toLocaleString()}
-                          </span>
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-xs text-white/60">
-                          Rs. {product.price.toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ================= FEATURED ================= */}
-      <section className="px-5 py-14 md:px-10 lg:px-16">
-        <div className="mx-auto max-w-[1400px]">
-          <div className="mb-7 flex items-end justify-between border-b border-[#222] pb-5">
+      {/* MEN */}
+      <section className="border-y border-white/10 bg-white/[0.02]">
+        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+          <div className="mb-10 flex items-end justify-between gap-5">
             <div>
-              <p className="mb-2 text-[9px] uppercase tracking-[4px] text-[#C6A15B]">
-                Selected Pieces
+              <p className="mb-2 text-sm uppercase tracking-[0.25em] text-[#C6A15B]">
+                For Him
               </p>
 
-              <h2 className="text-2xl font-light uppercase tracking-wide md:text-4xl">
-                Featured
+              <h2 className="text-3xl font-bold sm:text-4xl">
+                Men&apos;s Collection
               </h2>
             </div>
 
             <Link
-              href="/shop"
-              className="text-[9px] uppercase tracking-[2px] text-white/50 transition hover:text-[#C6A15B]"
+              href="/products?category=Men"
+              className="hidden text-sm font-medium text-[#C6A15B] hover:underline sm:block"
             >
-              Shop All →
+              View All →
             </Link>
           </div>
 
-          {products.length === 0 ? (
-            <p className="py-8 text-sm text-white/40">
-              No products available.
+          {menProducts.length === 0 ? (
+            <p className="text-gray-500">
+              No men&apos;s products available.
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
-              {products.slice(0, 4).map((product) => {
-                const { onSale, discountPercent } = getSaleStatus(product);
-
-                return (
-                  <Link
-                    href={`/product/${product._id}`}
-                    key={product._id}
-                    className="group"
-                  >
-                    <div className="relative aspect-[3/4] overflow-hidden bg-[#111]">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.04]"
-                      />
-
-                      {onSale && (
-                        <span className="absolute left-3 top-3 bg-[#C6A15B] px-2.5 py-1.5 text-[8px] font-bold tracking-[1px] text-black">
-                          {discountPercent}% OFF
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="pt-4">
-                      <p className="text-[8px] uppercase tracking-[3px] text-white/35">
-                        {product.category}
-                      </p>
-
-                      <h3 className="mt-2 text-xs font-medium uppercase tracking-[1px] text-white/90 md:text-sm">
-                        {product.name}
-                      </h3>
-
-                      {onSale ? (
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="text-xs font-medium text-[#C6A15B]">
-                            Rs. {product.salePrice!.toLocaleString()}
-                          </span>
-
-                          <span className="text-[10px] text-white/35 line-through">
-                            Rs. {product.price.toLocaleString()}
-                          </span>
-                        </div>
-                      ) : (
-                        <p className="mt-2 text-xs text-white/60">
-                          Rs. {product.price.toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {menProducts.map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* ================= FINAL CTA ================= */}
-      <section className="border-t border-[#222] px-5 py-16 md:px-10 md:py-20">
-        <div className="mx-auto max-w-5xl text-center">
-          <p className="text-[9px] uppercase tracking-[5px] text-[#C6A15B]">
+      {/* WOMEN */}
+      <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+        <div className="mb-10 flex items-end justify-between gap-5">
+          <div>
+            <p className="mb-2 text-sm uppercase tracking-[0.25em] text-[#C6A15B]">
+              For Her
+            </p>
+
+            <h2 className="text-3xl font-bold sm:text-4xl">
+              Women&apos;s Collection
+            </h2>
+          </div>
+
+          <Link
+            href="/products?category=Women"
+            className="hidden text-sm font-medium text-[#C6A15B] hover:underline sm:block"
+          >
+            View All →
+          </Link>
+        </div>
+
+        {womenProducts.length === 0 ? (
+          <p className="text-gray-500">
+            No women&apos;s products available.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {womenProducts.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* CTA */}
+      <section className="border-t border-[#C6A15B]/20 bg-[#C6A15B]/5">
+        <div className="mx-auto max-w-5xl px-6 py-24 text-center">
+          <p className="mb-3 text-sm uppercase tracking-[0.3em] text-[#C6A15B]">
             BUY NEXT
           </p>
 
-          <h2 className="mt-5 text-3xl font-light uppercase tracking-[-1px] md:text-5xl">
-            Your Style.
-            <span className="text-white/40"> Your Next Move.</span>
+          <h2 className="text-4xl font-bold sm:text-5xl">
+            Upgrade Your Style
           </h2>
 
-          <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-white/40">
-            Discover our latest collection and find pieces designed for your
-            everyday style.
+          <p className="mx-auto mt-5 max-w-2xl text-gray-400">
+            Explore our latest collection and find pieces made for
+            your everyday style.
           </p>
 
           <Link
-            href="/shop"
-            className="mt-7 inline-flex border border-[#C6A15B] px-8 py-3.5 text-[10px] font-medium uppercase tracking-[3px] text-[#C6A15B] transition duration-300 hover:bg-[#C6A15B] hover:text-black"
+            href="/products"
+            className="mt-8 inline-block rounded-md bg-[#C6A15B] px-8 py-4 font-semibold text-black transition hover:bg-[#d4b46d]"
           >
             Explore Collection
           </Link>
         </div>
       </section>
     </main>
+  );
+}
+
+function ProductCard({
+  product,
+}: {
+  product: ProductType;
+}) {
+  const discount =
+    product.isSale &&
+    product.salePrice &&
+    product.price > product.salePrice
+      ? Math.round(
+          ((product.price - product.salePrice) /
+            product.price) *
+            100
+        )
+      : 0;
+
+  return (
+    <Link
+      href={`/products/${product._id}`}
+      className="group overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] transition hover:-translate-y-1 hover:border-[#C6A15B]/40"
+    >
+      <div className="relative aspect-[4/5] overflow-hidden bg-[#111]">
+        {product.image ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-gray-600">
+            No Image
+          </div>
+        )}
+
+        {product.isSale && discount > 0 && (
+          <span className="absolute left-3 top-3 rounded-full bg-[#C6A15B] px-3 py-1 text-xs font-bold text-black">
+            {discount}% OFF
+          </span>
+        )}
+      </div>
+
+      <div className="p-5">
+        <p className="mb-1 text-xs uppercase tracking-wider text-gray-500">
+          {product.category}
+        </p>
+
+        <h3 className="truncate text-base font-semibold">
+          {product.name}
+        </h3>
+
+        <div className="mt-3 flex items-center gap-2">
+          {product.isSale &&
+          product.salePrice &&
+          product.salePrice < product.price ? (
+            <>
+              <span className="font-bold text-[#C6A15B]">
+                Rs. {product.salePrice.toLocaleString()}
+              </span>
+
+              <span className="text-sm text-gray-500 line-through">
+                Rs. {product.price.toLocaleString()}
+              </span>
+            </>
+          ) : (
+            <span className="font-bold text-[#C6A15B]">
+              Rs. {product.price.toLocaleString()}
+            </span>
+          )}
+        </div>
+      </div>
+    </Link>
   );
 }
