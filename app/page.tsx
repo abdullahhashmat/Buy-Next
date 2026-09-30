@@ -1,24 +1,62 @@
 import Link from "next/link";
 
+type Product = {
+  _id: string;
+  name: string;
+  price: number;
+  salePrice?: number;
+  isSale?: boolean;
+  image: string;
+  category: string;
+};
+
 export default async function Home() {
   const baseUrl = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000";
 
-  const res = await fetch(`${baseUrl}/api/products`, {
-    cache: "no-store",
-  });
+  let products: Product[] = [];
 
-  const data = await res.json();
-  const products = data.products || [];
+  try {
+    const res = await fetch(`${baseUrl}/api/products`, {
+      cache: "no-store",
+    });
+
+    if (res.ok) {
+      const contentType = res.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
+        const data = await res.json();
+        products = Array.isArray(data.products) ? data.products : [];
+      }
+    }
+  } catch (error) {
+    console.error("Products fetch error:", error);
+    products = [];
+  }
 
   const menProducts = products
-    .filter((product: any) => product.category === "Men")
+    .filter((product) => product.category === "Men")
     .slice(0, 4);
 
   const womenProducts = products
-    .filter((product: any) => product.category === "Women")
+    .filter((product) => product.category === "Women")
     .slice(0, 4);
+
+  const getSaleStatus = (product: Product) => {
+    const onSale =
+      product.isSale === true &&
+      typeof product.salePrice === "number" &&
+      product.salePrice < product.price;
+
+    const discountPercent = onSale
+      ? Math.round(
+          ((product.price - product.salePrice!) / product.price) * 100
+        )
+      : 0;
+
+    return { onSale, discountPercent };
+  };
 
   return (
     <main className="min-h-screen bg-[#050505] text-white">
@@ -27,12 +65,12 @@ export default async function Home() {
         <img
           src="/images/1.jpg"
           alt="BUY NEXT Ready To Wear"
-          className="absolute inset-0 h-130 w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
         />
 
-        <div className="relative z-10 flex min-h-[520px] items-center px-8 py-24 md:px-16 lg:px-24 inset-0 bg-black/30">
+        <div className="relative z-10 flex min-h-[520px] items-center bg-black/30 px-8 py-24 md:px-16 lg:px-24">
           <div className="max-w-lg text-left">
-            <h1 className="-mt-1 text-4xl font-normal uppercase leading-tight text-white md:text-5xl lg:text-6xl">
+            <h1 className="text-4xl font-normal uppercase leading-tight text-white md:text-5xl lg:text-6xl">
               Ready To Wear
             </h1>
 
@@ -48,7 +86,7 @@ export default async function Home() {
 
       {/* ================= MEN ================= */}
       {menProducts.length > 0 && (
-        <section className="px-5 py-14 md:px-10 md:py-18 lg:px-16">
+        <section className="px-5 py-14 md:px-10 lg:px-16">
           <div className="mx-auto max-w-[1400px]">
             <div className="mb-7 flex items-end justify-between border-b border-[#222] pb-5">
               <div>
@@ -70,11 +108,8 @@ export default async function Home() {
             </div>
 
             <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
-              {menProducts.map((product: any) => {
-                const onSale =
-                  product.isSale === true &&
-                  product.salePrice &&
-                  product.salePrice < product.price;
+              {menProducts.map((product) => {
+                const { onSale } = getSaleStatus(product);
 
                 return (
                   <Link
@@ -94,8 +129,6 @@ export default async function Home() {
                           SALE
                         </span>
                       )}
-
-                      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
                     </div>
 
                     <div className="pt-4">
@@ -106,7 +139,7 @@ export default async function Home() {
                       {onSale ? (
                         <div className="mt-2 flex items-center gap-2">
                           <span className="text-xs font-medium text-[#C6A15B]">
-                            Rs. {product.salePrice.toLocaleString()}
+                            Rs. {product.salePrice!.toLocaleString()}
                           </span>
 
                           <span className="text-[10px] text-white/35 line-through">
@@ -129,7 +162,7 @@ export default async function Home() {
 
       {/* ================= WOMEN ================= */}
       {womenProducts.length > 0 && (
-        <section className="border-y border-[#222] bg-[#090909] px-5 py-14 md:px-10 md:py-18 lg:px-16">
+        <section className="border-y border-[#222] bg-[#090909] px-5 py-14 md:px-10 lg:px-16">
           <div className="mx-auto max-w-[1400px]">
             <div className="mb-7 flex items-end justify-between border-b border-[#222] pb-5">
               <div>
@@ -151,11 +184,8 @@ export default async function Home() {
             </div>
 
             <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
-              {womenProducts.map((product: any) => {
-                const onSale =
-                  product.isSale === true &&
-                  product.salePrice &&
-                  product.salePrice < product.price;
+              {womenProducts.map((product) => {
+                const { onSale } = getSaleStatus(product);
 
                 return (
                   <Link
@@ -175,8 +205,6 @@ export default async function Home() {
                           SALE
                         </span>
                       )}
-
-                      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition duration-300 group-hover:opacity-100" />
                     </div>
 
                     <div className="pt-4">
@@ -187,7 +215,7 @@ export default async function Home() {
                       {onSale ? (
                         <div className="mt-2 flex items-center gap-2">
                           <span className="text-xs font-medium text-[#C6A15B]">
-                            Rs. {product.salePrice.toLocaleString()}
+                            Rs. {product.salePrice!.toLocaleString()}
                           </span>
 
                           <span className="text-[10px] text-white/35 line-through">
@@ -209,7 +237,7 @@ export default async function Home() {
       )}
 
       {/* ================= FEATURED ================= */}
-      <section className="px-5 py-14 md:px-10 md:py-18 lg:px-16">
+      <section className="px-5 py-14 md:px-10 lg:px-16">
         <div className="mx-auto max-w-[1400px]">
           <div className="mb-7 flex items-end justify-between border-b border-[#222] pb-5">
             <div>
@@ -236,19 +264,8 @@ export default async function Home() {
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
-              {products.slice(0, 4).map((product: any) => {
-                const onSale =
-                  product.isSale === true &&
-                  product.salePrice &&
-                  product.salePrice < product.price;
-
-                const discountPercent = onSale
-                  ? Math.round(
-                      ((product.price - product.salePrice) /
-                        product.price) *
-                        100
-                    )
-                  : 0;
+              {products.slice(0, 4).map((product) => {
+                const { onSale, discountPercent } = getSaleStatus(product);
 
                 return (
                   <Link
@@ -282,7 +299,7 @@ export default async function Home() {
                       {onSale ? (
                         <div className="mt-2 flex items-center gap-2">
                           <span className="text-xs font-medium text-[#C6A15B]">
-                            Rs. {product.salePrice.toLocaleString()}
+                            Rs. {product.salePrice!.toLocaleString()}
                           </span>
 
                           <span className="text-[10px] text-white/35 line-through">
