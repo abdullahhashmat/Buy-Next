@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export default async function Home() {
-  const res = await fetch("http://localhost:3000/api/products", {
+  const res = await fetch("/api/products", {
     cache: "no-store",
   });
 
@@ -19,30 +19,27 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-[#050505] text-white">
       {/* ================= HERO ================= */}
-      <section className="relative  overflow-hidden border-b border-[#252525]">
-        {" "}
+      <section className="relative overflow-hidden border-b border-[#252525]">
         <img
           src="/images/1.jpg"
           alt="BUY NEXT Ready To Wear"
           className="absolute inset-0 h-130 w-full object-cover"
-        />{" "}
+        />
+
         <div className="relative z-10 flex min-h-[520px] items-center px-8 py-24 md:px-16 lg:px-24 inset-0 bg-black/30">
-          {" "}
           <div className="max-w-lg text-left">
-            {" "}
             <h1 className="-mt-1 text-4xl font-normal uppercase leading-tight text-white md:text-5xl lg:text-6xl">
-              {" "}
-              Ready To Wear{" "}
-            </h1>{" "}
+              Ready To Wear
+            </h1>
+
             <Link
               href="/shop"
               className="mt-6 inline-block border border-white px-7 py-3 text-xs font-medium uppercase tracking-[2px] text-white transition hover:bg-white hover:text-black"
             >
-              {" "}
-              Shop Now{" "}
-            </Link>{" "}
-          </div>{" "}
-        </div>{" "}
+              Shop Now
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* ================= MEN ================= */}
@@ -230,7 +227,9 @@ export default async function Home() {
           </div>
 
           {products.length === 0 ? (
-            <p className="py-8 text-sm text-white/40">No products available.</p>
+            <p className="py-8 text-sm text-white/40">
+              No products available.
+            </p>
           ) : (
             <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
               {products.slice(0, 4).map((product: any) => {
@@ -241,8 +240,9 @@ export default async function Home() {
 
                 const discountPercent = onSale
                   ? Math.round(
-                      ((product.price - product.salePrice) / product.price) *
-                        100,
+                      ((product.price - product.salePrice) /
+                        product.price) *
+                        100
                     )
                   : 0;
 
